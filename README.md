@@ -129,11 +129,27 @@ After that, the bot will connect to your wallet and begin its farming cycles. Yo
 
 ---
 
+## ❤️ Support My Work
+
+I build open-source tools like this to help the airdrop community.
+
+If you find this bot useful, please consider making a donation. Your support directly funds the development of more bots for future airdrops.
+
+-   **EVM (ETH, BSC, etc.):**
+    `0x547C150ad0854f53BCefdAE1B6ec4dbB97Cb8349`
+
+-   **SOL (Solana):**
+    `FCiMDNSRbidsSb63tjEFEK3xQxQyAtPdANaSuaCJcNBQ`
+
+Thank you! 🙏
+
+---
+
 ## Community & Support
 
 This bot was created and is maintained by the **Airdrop For Everyone ID** community. For airdrop news, discussions, and support for our tools, please join us!
 
--   **Telegram Channel:** [https://t.me/airdropforeveryoneid](https://t.me/airdropforeveryoneid)
+-   **Telegram Channel:** [https://t.me/airdropforeveryoneid](https://t.e/airdropforeveryoneid)
 -   **GitHub Issues:** For technical problems or bug reports with the bot, please [open an issue](https://github.com/your-username/oroswap-bot/issues) on this repository.
 
 ---
