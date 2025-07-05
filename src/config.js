@@ -19,11 +19,20 @@ export const EXPLORER_URL = "https://explorer.testnet.zigchain.com/transactions/
 export const ZIG_DENOM = "uzig";
 export const ORO_DENOM = "coin.zig10rfjm85jmzfhravjwpq3hcdz8ngxg7lxd0drkr.uoro";
 
-// --- Transaction Amounts (in smallest unit) ---
-export const AMOUNT_TO_SWAP = "250000";       // 0.25 ZIG
-export const ZIG_AMOUNT_FOR_LP = "150000";    // 0.15 ZIG (as a base for LP calculation)
+// --- [MODIFIED] Randomized Transaction Amounts (in smallest unit) ---
+// Example: "250000" means 0.25 ZIG. Bot will pick a random value between MIN and MAX.
+export const MIN_AMOUNT_TO_SWAP = "200000";       // 0.20 ZIG
+export const MAX_AMOUNT_TO_SWAP = "450000";       // 0.45 ZIG
 
-// --- Delays (in seconds) ---
-export const DELAY_BETWEEN_STEPS = 15;      // Delay between swap and add liquidity
-export const DELAY_BETWEEN_CYCLES = 45;     // Delay after a successful cycle
-export const DELAY_AFTER_ERROR = 60;        // Delay after an unexpected error
+export const MIN_ZIG_AMOUNT_FOR_LP = "150000";    // 0.15 ZIG
+export const MAX_ZIG_AMOUNT_FOR_LP = "300000";    // 0.30 ZIG
+
+// --- [MODIFIED] Randomized Delays (in seconds) ---
+// Bot will wait for a random duration within these ranges to appear more human.
+export const MIN_DELAY_BETWEEN_STEPS = 20;      // Min delay between swap and add liquidity
+export const MAX_DELAY_BETWEEN_STEPS = 60;      // Max delay between swap and add liquidity
+
+export const MIN_DELAY_BETWEEN_CYCLES = 300;    // Min delay after a successful cycle (e.g., 5 minutes)
+export const MAX_DELAY_BETWEEN_CYCLES = 900;    // Max delay after a successful cycle (e.g., 15 minutes)
+
+export const DELAY_AFTER_ERROR = 60;            // Fixed delay after an unexpected error

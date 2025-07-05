@@ -7,6 +7,22 @@
 import readline from 'readline';
 
 /**
+ * [NEW] Generates a random integer between a min and max value (inclusive).
+ * This is the core function for making the bot's behavior random.
+ * @param {number|string} min - The minimum value.
+ * @param {number|string} max - The maximum value.
+ * @returns {number} A random integer within the range.
+ */
+export function getRandomValue(min, max) {
+    const minVal = parseInt(min);
+    const maxVal = parseInt(max);
+    if (minVal > maxVal) {
+        throw new Error(`Min value ${minVal} cannot be greater than Max value ${maxVal}.`);
+    }
+    return Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+}
+
+/**
  * Pauses execution for a specified duration.
  * @param {number} ms - The duration to sleep in milliseconds.
  * @returns {Promise<void>}

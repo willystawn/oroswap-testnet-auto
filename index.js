@@ -27,8 +27,11 @@ async function runCycle(context, cycleCount) {
     
     await oroswap.performSwap(context.client, context.account.address);
     
-    console.log(`     ...waiting for ${config.DELAY_BETWEEN_STEPS} seconds...`);
-    await utils.sleep(config.DELAY_BETWEEN_STEPS * 1000);
+    // --- [MODIFIED] Wait for a random delay between steps ---
+    const stepDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_STEPS, config.MAX_DELAY_BETWEEN_STEPS);
+    console.log(`     ...waiting for ${stepDelay} seconds...`);
+    await utils.sleep(stepDelay * 1000);
+    // --------------------------------------------------------
 
     await oroswap.performAddLiquidity(context.client, context.account.address);
     
@@ -78,8 +81,14 @@ async function main() {
         while (true) {
             try {
                 await runCycle(context, cycleCount);
-                console.log(`   Waiting for ${config.DELAY_BETWEEN_CYCLES} seconds before the next cycle...`);
-                await utils.sleep(config.DELAY_BETWEEN_CYCLES * 1000);
+
+                // --- [MODIFIED] Wait for a random delay before the next cycle ---
+                const cycleDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_CYCLES, config.MAX_DELAY_BETWEEN_CYCLES);
+                const delayMinutes = (cycleDelay / 60).toFixed(1);
+                console.log(`   Waiting for ~${delayMinutes} minutes (${cycleDelay}s) before the next cycle...`);
+                await utils.sleep(cycleDelay * 1000);
+                // -------------------------------------------------------------
+                
                 cycleCount++;
             } catch (error) {
                 const errorMsg = error.toString();
