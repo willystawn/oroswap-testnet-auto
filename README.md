@@ -31,6 +31,7 @@ Let's hunt for airdrops together!
 
 -   **Continuous Farming:** Runs in a 24/7 loop to maximize on-chain interactions.
 -   **Automated Swap:** Swaps ZIG for ORO automatically.
+-   **Automated Reverse Swap:** Swaps ORO back to ZIG to complete the transaction cycle.
 -   **Smart Liquidity Provision:** Dynamically calculates the correct token ratio before adding liquidity to prevent errors.
 -   **Intelligent Error Handling:**
     -   Detects "insufficient funds" errors and automatically waits for a user-defined period (ideal for faucet cooldowns).

@@ -11,7 +11,7 @@ import * as oroswap from './src/oroswap.js';
 import { initializeClient } from './src/client.js';
 
 /**
- * Runs a single, complete farming cycle (swap and add liquidity).
+ * Runs a single, complete farming cycle (swap, reverse swap, and add liquidity).
  * @param {object} context - The application context.
  * @param {number} cycleCount - The current cycle number.
  */
@@ -25,14 +25,21 @@ async function runCycle(context, cycleCount) {
     const oroBalance = await utils.getFormattedBalance(context.client, context.account.address, config.ORO_DENOM, "ORO");
     console.log(`  💰 Current Balance: ${zigBalance}, ${oroBalance}`);
     
+    // Step 1: Perform the original ZIG -> ORO swap
     await oroswap.performSwap(context.client, context.account.address);
     
-    // --- [MODIFIED] Wait for a random delay between steps ---
-    const stepDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_STEPS, config.MAX_DELAY_BETWEEN_STEPS);
+    let stepDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_STEPS, config.MAX_DELAY_BETWEEN_STEPS);
     console.log(`     ...waiting for ${stepDelay} seconds...`);
     await utils.sleep(stepDelay * 1000);
-    // --------------------------------------------------------
+    
+    // [NEW] Step 2: Perform the new ORO -> ZIG reverse swap
+    await oroswap.performReverseSwap(context.client, context.account.address);
 
+    stepDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_STEPS, config.MAX_DELAY_BETWEEN_STEPS);
+    console.log(`     ...waiting for ${stepDelay} seconds...`);
+    await utils.sleep(stepDelay * 1000);
+
+    // Step 3: Perform Add Liquidity
     await oroswap.performAddLiquidity(context.client, context.account.address);
     
     console.log(`\n🎉 Cycle #${cycleCount} completed successfully!`);
@@ -82,12 +89,10 @@ async function main() {
             try {
                 await runCycle(context, cycleCount);
 
-                // --- [MODIFIED] Wait for a random delay before the next cycle ---
                 const cycleDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_CYCLES, config.MAX_DELAY_BETWEEN_CYCLES);
                 const delayMinutes = (cycleDelay / 60).toFixed(1);
                 console.log(`   Waiting for ~${delayMinutes} minutes (${cycleDelay}s) before the next cycle...`);
                 await utils.sleep(cycleDelay * 1000);
-                // -------------------------------------------------------------
                 
                 cycleCount++;
             } catch (error) {

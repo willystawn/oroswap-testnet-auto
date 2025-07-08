@@ -21,9 +21,16 @@ export const ORO_DENOM = "coin.zig10rfjm85jmzfhravjwpq3hcdz8ngxg7lxd0drkr.uoro";
 
 // --- [MODIFIED] Randomized Transaction Amounts (in smallest unit) ---
 // Example: "250000" means 0.25 ZIG. Bot will pick a random value between MIN and MAX.
-export const MIN_AMOUNT_TO_SWAP = "200000";       // 0.20 ZIG
-export const MAX_AMOUNT_TO_SWAP = "450000";       // 0.45 ZIG
 
+// Amounts for ZIG -> ORO Swap
+export const MIN_AMOUNT_TO_SWAP_ZIG = "200000";       // 0.20 ZIG
+export const MAX_AMOUNT_TO_SWAP_ZIG = "450000";       // 0.45 ZIG
+
+// [NEW] Amounts for ORO -> ZIG Reverse Swap
+export const MIN_AMOUNT_TO_SWAP_ORO = "100000";       // 0.10 ORO
+export const MAX_AMOUNT_TO_SWAP_ORO = "250000";       // 0.25 ORO
+
+// Amounts for Adding Liquidity
 export const MIN_ZIG_AMOUNT_FOR_LP = "150000";    // 0.15 ZIG
 export const MAX_ZIG_AMOUNT_FOR_LP = "300000";    // 0.30 ZIG
 
