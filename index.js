@@ -2,9 +2,10 @@
 
 /**
  * @file Main entry point for the Oroswoap Farming Bot.
- * This script orchestrates the entire farming process in a continuous loop.
+ * This script orchestrates the entire farming process in a continuous loop FOR MULTIPLE ACCOUNTS.
  */
 
+import fs from 'fs';
 import * as config from './src/config.js';
 import * as utils from './src/utils.js';
 import * as oroswap from './src/oroswap.js';
@@ -12,12 +13,12 @@ import { initializeClient } from './src/client.js';
 
 /**
  * Runs a single, complete farming cycle (swap, reverse swap, and add liquidity).
- * @param {object} context - The application context.
- * @param {number} cycleCount - The current cycle number.
+ * @param {object} context - The application context containing client and account info.
+ * @param {number} cycleNumber - The current cycle number for this account.
  */
-async function runCycle(context, cycleCount) {
+async function runCycle(context, cycleNumber) {
     console.log("\n-----------------------------------------------------");
-    console.log(`🚀 Starting Farming Cycle #${cycleCount} | ${new Date().toLocaleString()}`);
+    console.log(`🚀 Starting Farming Cycle #${cycleNumber} for ${context.account.address}`);
     console.log("-----------------------------------------------------");
 
     console.log("  ℹ️  Checking wallet balance...");
@@ -32,7 +33,7 @@ async function runCycle(context, cycleCount) {
     console.log(`     ...waiting for ${stepDelay} seconds...`);
     await utils.sleep(stepDelay * 1000);
     
-    // [NEW] Step 2: Perform the new ORO -> ZIG reverse swap
+    // Step 2: Perform the new ORO -> ZIG reverse swap
     await oroswap.performReverseSwap(context.client, context.account.address);
 
     stepDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_STEPS, config.MAX_DELAY_BETWEEN_STEPS);
@@ -42,7 +43,7 @@ async function runCycle(context, cycleCount) {
     // Step 3: Perform Add Liquidity
     await oroswap.performAddLiquidity(context.client, context.account.address);
     
-    console.log(`\n🎉 Cycle #${cycleCount} completed successfully!`);
+    console.log(`\n🎉 Cycle #${cycleNumber} for ${context.account.address} completed successfully!`);
 }
 
 /**
@@ -50,14 +51,23 @@ async function runCycle(context, cycleCount) {
  */
 async function main() {
     console.log("==================================================");
-    console.log("      🤖 Oroswoap Farming Bot (24/7 Mode) 🤖      ");
+    console.log("   🤖 Oroswoap Multi-Account Farming Bot 🤖    ");
     console.log("==================================================");
-    
-    if (!config.MNEMONIC) {
-        console.error("❌ FATAL: MNEMONIC phrase not found in .env file. Bot is stopping.");
+
+    // [MODIFIKASI] Baca semua mnemonic dari file mnemonics.txt
+    let mnemonics;
+    try {
+        mnemonics = fs.readFileSync('mnemonics.txt', 'utf-8').split('\n').filter(Boolean);
+        if (mnemonics.length === 0) {
+            console.error("❌ FATAL: File 'mnemonics.txt' is empty or not found. Please create it and add your mnemonic phrases.");
+            return;
+        }
+        console.log(`✅ Found ${mnemonics.length} account(s) in mnemonics.txt.`);
+    } catch (error) {
+        console.error("❌ FATAL: Could not read 'mnemonics.txt'. Make sure the file exists in the same directory as index.js.");
         return;
     }
-
+    
     // --- Get user input for the retry delay ---
     let retryDelayHours;
     while (true) {
@@ -77,41 +87,56 @@ async function main() {
         }
     }
 
-    // --- Initialize client and start the main loop ---
-    try {
-        const { account, client } = await initializeClient(config.MNEMONIC, config.RPC_ENDPOINT);
-        console.log(`\n🔗 Connected to wallet: ${account.address}`);
+    // [MODIFIKASI] Loop utama yang berjalan selamanya
+    let mainCycleCount = 1;
+    while (true) {
+        console.log(`\n\n<<<<<<<<<<<<< Starting Main Loop #${mainCycleCount} >>>>>>>>>>>>>>>`);
         
-        let cycleCount = 1;
-        const context = { client, account };
-
-        while (true) {
+        // [MODIFIKASI] Loop untuk setiap akun/mnemonic
+        for (let i = 0; i < mnemonics.length; i++) {
+            const mnemonic = mnemonics[i];
+            const accountIndex = i + 1;
+            console.log(`\n=============== PROCESSING ACCOUNT ${accountIndex}/${mnemonics.length} ===============`);
+            
             try {
-                await runCycle(context, cycleCount);
-
-                const cycleDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_CYCLES, config.MAX_DELAY_BETWEEN_CYCLES);
-                const delayMinutes = (cycleDelay / 60).toFixed(1);
-                console.log(`   Waiting for ~${delayMinutes} minutes (${cycleDelay}s) before the next cycle...`);
-                await utils.sleep(cycleDelay * 1000);
+                // Inisialisasi client untuk akun saat ini
+                const { account, client } = await initializeClient(mnemonic, config.RPC_ENDPOINT);
+                console.log(`🔗 Connected to wallet: ${account.address}`);
                 
-                cycleCount++;
+                const context = { client, account };
+                await runCycle(context, mainCycleCount);
+
             } catch (error) {
                 const errorMsg = error.toString();
-                console.error(`\n❌ ERROR occurred during cycle #${cycleCount}:`);
+                console.error(`\n❌ ERROR occurred on account ${accountIndex}:`);
                 console.error(`   ➡️  Message: ${errorMsg}`);
 
                 if (errorMsg.includes("insufficient funds")) {
-                    console.log("\n🛑 Insufficient funds detected. Probably need to use the faucet.");
-                    await utils.runCountdown(retryDelayHours);
-                } else {
-                    console.log(`\n🔴 An unexpected error occurred. Retrying in ${config.DELAY_AFTER_ERROR} seconds...`);
+                    console.log("   -> Insufficient funds detected for this account. It will be skipped until the next main loop.");
+                    // Jika dana tidak cukup, kita lanjutkan ke akun berikutnya
+                } else if (errorMsg.includes("Mnemonic and RPC Endpoint must be provided") || errorMsg.includes("Invalid mnemonic")) {
+                    console.log("   -> Invalid mnemonic phrase detected. Please check your mnemonics.txt file.");
+                }
+                else {
+                    console.log(`   -> An unexpected error occurred. Retrying this account after ${config.DELAY_AFTER_ERROR} seconds...`);
                     await utils.sleep(config.DELAY_AFTER_ERROR * 1000);
+                    i--; // Coba lagi akun yang sama setelah delay
                 }
             }
+            // Tambahkan jeda singkat antar akun agar tidak terlalu cepat
+            if (i < mnemonics.length - 1) {
+                const delayBetweenAccounts = 10; // 10 detik
+                console.log(`\n-- Waiting ${delayBetweenAccounts}s before processing next account --`);
+                await utils.sleep(delayBetweenAccounts * 1000);
+            }
         }
-    } catch (initError) {
-        console.error("❌ FATAL: Failed to initialize the client. Please check your RPC endpoint and mnemonic.");
-        console.error(`   ➡️  Details: ${initError.message}`);
+
+        mainCycleCount++;
+        const cycleDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_CYCLES, config.MAX_DELAY_BETWEEN_CYCLES);
+        const delayMinutes = (cycleDelay / 60).toFixed(1);
+        console.log(`\n\n<<<<<<<<<<<<< Main Loop Completed >>>>>>>>>>>>>>>`);
+        console.log(`   All accounts processed. Waiting for ~${delayMinutes} minutes before starting the next main loop...`);
+        await utils.sleep(cycleDelay * 1000);
     }
 }
 

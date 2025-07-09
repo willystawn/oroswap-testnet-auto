@@ -10,7 +10,7 @@ An automated bot to perform daily Swap and Add Liquidity tasks on the [Oroswoap 
 
 This script requires your wallet's 12 or 24-word Mnemonic Phrase to function. Anyone with access to this phrase can steal all your funds.
 
-- ✅ **ALWAYS** create a brand new, empty **"burner" wallet** exclusively for this bot and other airdrop activities.
+- ✅ **ALWAYS** create brand new, empty **"burner" wallets** exclusively for this bot and other airdrop activities.
 - ❌ **NEVER** use the mnemonic phrase from your main wallet where you store your valuable assets.
 
 You are solely responsible for the security of your funds.
@@ -29,12 +29,13 @@ Let's hunt for airdrops together!
 
 ## Features
 
--   **Continuous Farming:** Runs in a 24/7 loop to maximize on-chain interactions.
+-   **Multi-Account Support:** Automatically farms for multiple wallets listed in a `mnemonics.txt` file.
+-   **Continuous Farming:** Runs in a 24/7 loop, cycling through all your accounts to maximize on-chain interactions.
 -   **Automated Swap:** Swaps ZIG for ORO automatically.
 -   **Automated Reverse Swap:** Swaps ORO back to ZIG to complete the transaction cycle.
 -   **Smart Liquidity Provision:** Dynamically calculates the correct token ratio before adding liquidity to prevent errors.
 -   **Intelligent Error Handling:**
-    -   Detects "insufficient funds" errors and automatically waits for a user-defined period (ideal for faucet cooldowns).
+    -   Detects "insufficient funds" errors and automatically skips the account until the next main loop (ideal for faucet cooldowns).
     -   Retries on temporary network errors.
 -   **Configurable:** Easily change transaction amounts, contract addresses, and delays in a central config file.
 -   **Interactive Setup:** Prompts the user to set the retry delay on startup.
@@ -70,7 +71,19 @@ Install the required Node.js packages:
 npm install
 ```
 
-**3. Create and Configure the Environment File**
+**3. Prepare Your Wallets**
+
+- Create as many burner wallets as you want to farm with.
+- Save each wallet's 12 or 24-word mnemonic phrase on a separate line in a file named `mnemonics.txt` in the project root.
+- **Example `mnemonics.txt`:**
+    ```
+    word1 word2 word3 ... phrase for account 1
+    brick apple table ... phrase for account 2
+    another long silly ... phrase for account 3
+    ```
+- **Never use your main wallet!**
+
+**4. Configure the Environment File**
 
 Create a `.env` file in the root of the project. You can copy the example file if it exists, or create a new one.
 
@@ -85,24 +98,20 @@ touch .env
 Now, open the `.env` file with a text editor and fill in your details:
 
 ```env
-# 🚨 YOUR BURNER WALLET'S 12 OR 24-WORD MNEMONIC PHRASE 🚨
-MNEMONIC="word1 word2 word3 ... word12"
-
 # The RPC endpoint for the Zigchain Testnet
-RPC_ENDPOINT="https://rpc.testnet.zigchain.com"
+RPC_ENDPOINT="https://testnet-rpc.zigchain.com"
 ```
 
 > **Where to get your details:**
 >
-> -   **MNEMONIC:** From the new Keplr burner wallet you created.
 > -   **RPC_ENDPOINT:** The provided URL is usually correct. If it fails, check the official Zigchain/Oroswoap Discord or documentation for an updated one.
 
-**4. Fund Your Burner Wallet**
+**5. Fund Your Burner Wallets**
 
-Before running the bot, your burner wallet needs some ZIG tokens to pay for transactions.
+Before running the bot, each burner wallet needs some ZIG tokens to pay for transactions.
 
 -   Go to the Zigchain Testnet Faucet: **https://faucet.zigchain.com/**
--   Paste your burner wallet's address (which starts with `zig...`) and request tokens.
+-   Paste each burner wallet's address (which starts with `zig...`) and request tokens.
 
 ---
 
@@ -120,13 +129,13 @@ OR
 node index.js
 ```
 
-The bot will first ask you to set the retry delay for when it runs out of funds. You can press Enter to use the default (12 hours) or type your own value.
+The bot will first ask you to set the retry delay (in hours) for when an account runs out of funds. You can press Enter to use the default (12 hours) or type your own value.
 
 ```
 ⏰ Enter the retry delay in hours if funds are insufficient (default: 12):
 ```
 
-After that, the bot will connect to your wallet and begin its farming cycles. You can leave it running in a terminal window or use a process manager like `pm2` for long-term execution on a server.
+After that, the bot will process all accounts in your `mnemonics.txt` file and begin its farming cycles. You can leave it running in a terminal window or use a process manager like `pm2` for long-term execution on a server.
 
 ---
 
@@ -150,8 +159,8 @@ Thank you! 🙏
 
 This bot was created and is maintained by the **Airdrop For Everyone ID** community. For airdrop news, discussions, and support for our tools, please join us!
 
--   **Telegram Channel:** [https://t.me/airdropforeveryoneid](https://t.e/airdropforeveryoneid)
--   **GitHub Issues:** For technical problems or bug reports with the bot, please [open an issue](https://github.com/your-username/oroswap-bot/issues) on this repository.
+-   **Telegram Channel:** [https://t.me/airdropforeveryoneid](https://t.me/airdropforeveryoneid)
+-   **GitHub Issues:** For technical problems or bug reports with the bot, please [open an issue](https://github.com/willystawn/oroswap-bot/issues) on this repository.
 
 ---
 
@@ -159,8 +168,9 @@ This bot was created and is maintained by the **Airdrop For Everyone ID** commun
 
 ```
 /
-├── .env              # Your private environment variables (mnemonic, RPC)
+├── .env              # Your private environment variables (RPC endpoint)
 ├── .gitignore        # Specifies files for Git to ignore
+├── mnemonics.txt     # List of burner wallet mnemonics (one per line)
 ├── README.md         # This file
 ├── package.json      # Project dependencies and scripts
 ├── index.js          # Main application entry point

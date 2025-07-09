@@ -9,7 +9,7 @@ import 'dotenv/config';
 
 // --- Core Configuration ---
 export const RPC_ENDPOINT = process.env.RPC_ENDPOINT;
-export const MNEMONIC = process.env.MNEMONIC;
+// export const MNEMONIC = process.env.MNEMONIC;
 
 // --- Contract & Explorer ---
 export const ROUTER_CONTRACT_ADDRESS = "zig15jqg0hmp9n06q0as7uk3x9xkwr9k3r7yh4ww2uc0hek8zlryrgmsamk4qg";
