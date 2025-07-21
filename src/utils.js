@@ -1,5 +1,3 @@
-// src/utils.js
-
 /**
  * @file Contains utility functions for the bot, such as delays and user input.
  */
@@ -7,7 +5,7 @@
 import readline from 'readline';
 
 /**
- * [NEW] Generates a random integer between a min and max value (inclusive).
+ * Generates a random integer between a min and max value (inclusive).
  * This is the core function for making the bot's behavior random.
  * @param {number|string} min - The minimum value.
  * @param {number|string} max - The maximum value.
@@ -46,23 +44,20 @@ export function askQuestion(query) {
 }
 
 /**
- * Displays a countdown timer in the console.
- * @param {number} hours - The number of hours to count down from.
+ * Gets the raw integer balance of a specific token.
+ * @param {import('@cosmjs/cosmwasm-stargate').SigningCosmWasmClient} client - The signing client.
+ * @param {string} address - The wallet address.
+ * @param {string} denom - The token denomination.
+ * @returns {Promise<number>} The raw integer balance. Returns 0 on error.
  */
-export async function runCountdown(hours) {
-    let seconds = hours * 3600;
-    console.log(`\n⏳ Bot will retry in ${hours} hour(s). Press CTRL+C to stop.`);
-    while (seconds > 0) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        process.stdout.write(
-            `   Waiting for next run: ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')} \r`
-        );
-        await sleep(1000);
-        seconds--;
+export async function getRawBalance(client, address, denom) {
+    try {
+        const balance = await client.getBalance(address, denom);
+        return parseInt(balance?.amount || '0');
+    } catch (e) {
+        // This error often occurs if an account has never held the token, so returning 0 is safe.
+        return 0;
     }
-    console.log("\n✅ Countdown finished. Resuming operations...");
 }
 
 /**
@@ -76,7 +71,7 @@ export async function runCountdown(hours) {
 export async function getFormattedBalance(client, address, denom, symbol) {
     try {
         const balance = await client.getBalance(address, denom);
-        return `${(parseInt(balance.amount) / 1000000).toFixed(4)} ${symbol}`;
+        return `${(parseInt(balance?.amount || '0') / 1000000).toFixed(4)} ${symbol}`;
     } catch (e) {
         return `0.0000 ${symbol}`;
     }

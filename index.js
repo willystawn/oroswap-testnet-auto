@@ -1,5 +1,3 @@
-// index.js
-
 /**
  * @file Main entry point for the Oroswoap Farming Bot.
  * This script orchestrates the entire farming process in a continuous loop FOR MULTIPLE ACCOUNTS.
@@ -12,7 +10,8 @@ import * as oroswap from './src/oroswap.js';
 import { initializeClient } from './src/client.js';
 
 /**
- * Runs a single, complete farming cycle (swap, reverse swap, and add liquidity).
+ * Runs a single, complete farming cycle for a given account.
+ * It checks balances first and decides whether to farm or remove liquidity.
  * @param {object} context - The application context containing client and account info.
  * @param {number} cycleNumber - The current cycle number for this account.
  */
@@ -21,11 +20,34 @@ async function runCycle(context, cycleNumber) {
     console.log(`🚀 Starting Farming Cycle #${cycleNumber} for ${context.account.address}`);
     console.log("-----------------------------------------------------");
 
-    console.log("  ℹ️  Checking wallet balance...");
-    const zigBalance = await utils.getFormattedBalance(context.client, context.account.address, config.ZIG_DENOM, "ZIG");
-    const oroBalance = await utils.getFormattedBalance(context.client, context.account.address, config.ORO_DENOM, "ORO");
-    console.log(`  💰 Current Balance: ${zigBalance}, ${oroBalance}`);
-    
+    // Check balances BEFORE starting the cycle to determine the action.
+    console.log("  ℹ️  Checking wallet balance to determine action...");
+    const rawZigBalance = await utils.getRawBalance(context.client, context.account.address, config.ZIG_DENOM);
+    const rawOroBalance = await utils.getRawBalance(context.client, context.account.address, config.ORO_DENOM);
+    const formattedZig = (rawZigBalance / 1000000).toFixed(4);
+    const formattedOro = (rawOroBalance / 1000000).toFixed(4);
+    console.log(`  💰 Current Balance: ${formattedZig} ZIG, ${formattedOro} ORO`);
+
+    // If balance is too low, attempt to remove liquidity instead of swapping.
+    if (rawZigBalance < parseInt(config.MIN_ZIG_BALANCE_FOR_CYCLE) || rawOroBalance < parseInt(config.MIN_ORO_BALANCE_FOR_CYCLE)) {
+        console.log("  ⚠️  Low balance detected. Attempting to remove liquidity to refill funds.");
+        const wasLiquidityRemoved = await oroswap.performRemoveLiquidity(context.client, context.account.address);
+        
+        if (wasLiquidityRemoved) {
+            console.log("  ✅ Liquidity successfully removed. Balances will be updated for the next main loop.");
+            let stepDelay = utils.getRandomValue(config.MIN_DELAY_BETWEEN_STEPS, config.MAX_DELAY_BETWEEN_STEPS);
+            console.log(`     ...waiting for ${stepDelay} seconds before continuing...`);
+            await utils.sleep(stepDelay * 1000);
+        } else {
+             console.log("  ℹ️  No available liquidity to remove, or an error occurred. Skipping account until the next main loop.");
+        }
+        // End the cycle for this account, whether liquidity was removed or not.
+        return; 
+    }
+
+    // If balances are sufficient, proceed with the normal cycle.
+    console.log("  ✅ Balance is sufficient. Proceeding with standard farming cycle.");
+
     // Step 1: Perform the original ZIG -> ORO swap
     await oroswap.performSwap(context.client, context.account.address);
     
@@ -54,52 +76,29 @@ async function main() {
     console.log("   🤖 Oroswoap Multi-Account Farming Bot 🤖    ");
     console.log("==================================================");
 
-    // [MODIFIKASI] Baca semua mnemonic dari file mnemonics.txt
     let mnemonics;
     try {
         mnemonics = fs.readFileSync('mnemonics.txt', 'utf-8').split('\n').filter(Boolean);
         if (mnemonics.length === 0) {
-            console.error("❌ FATAL: File 'mnemonics.txt' is empty or not found. Please create it and add your mnemonic phrases.");
+            console.error("❌ FATAL: 'mnemonics.txt' is empty or not found. Please create it and add your mnemonic phrases.");
             return;
         }
         console.log(`✅ Found ${mnemonics.length} account(s) in mnemonics.txt.`);
     } catch (error) {
-        console.error("❌ FATAL: Could not read 'mnemonics.txt'. Make sure the file exists in the same directory as index.js.");
+        console.error("❌ FATAL: Could not read 'mnemonics.txt'. Make sure the file exists in the same directory.");
         return;
     }
     
-    // --- Get user input for the retry delay ---
-    let retryDelayHours;
-    while (true) {
-        const userInput = await utils.askQuestion('⏰ Enter the retry delay in hours if funds are insufficient (default: 12): ');
-        if (userInput.trim() === '') {
-            retryDelayHours = 12;
-            console.log(`   👍 Using default value: 12 hours.`);
-            break;
-        }
-        const parsedHours = parseFloat(userInput);
-        if (!isNaN(parsedHours) && parsedHours > 0) {
-            retryDelayHours = parsedHours;
-            console.log(`   👍 Retry delay set to ${retryDelayHours} hours.`);
-            break;
-        } else {
-            console.log('   ❌ Invalid input. Please enter a positive number (e.g., 8, 12.5).');
-        }
-    }
-
-    // [MODIFIKASI] Loop utama yang berjalan selamanya
     let mainCycleCount = 1;
     while (true) {
         console.log(`\n\n<<<<<<<<<<<<< Starting Main Loop #${mainCycleCount} >>>>>>>>>>>>>>>`);
         
-        // [MODIFIKASI] Loop untuk setiap akun/mnemonic
         for (let i = 0; i < mnemonics.length; i++) {
             const mnemonic = mnemonics[i];
             const accountIndex = i + 1;
             console.log(`\n=============== PROCESSING ACCOUNT ${accountIndex}/${mnemonics.length} ===============`);
             
             try {
-                // Inisialisasi client untuk akun saat ini
                 const { account, client } = await initializeClient(mnemonic, config.RPC_ENDPOINT);
                 console.log(`🔗 Connected to wallet: ${account.address}`);
                 
@@ -113,19 +112,17 @@ async function main() {
 
                 if (errorMsg.includes("insufficient funds")) {
                     console.log("   -> Insufficient funds detected for this account. It will be skipped until the next main loop.");
-                    // Jika dana tidak cukup, kita lanjutkan ke akun berikutnya
                 } else if (errorMsg.includes("Mnemonic and RPC Endpoint must be provided") || errorMsg.includes("Invalid mnemonic")) {
                     console.log("   -> Invalid mnemonic phrase detected. Please check your mnemonics.txt file.");
-                }
-                else {
+                } else {
                     console.log(`   -> An unexpected error occurred. Retrying this account after ${config.DELAY_AFTER_ERROR} seconds...`);
                     await utils.sleep(config.DELAY_AFTER_ERROR * 1000);
-                    i--; // Coba lagi akun yang sama setelah delay
+                    i--; // Retry the same account after a delay.
                 }
             }
-            // Tambahkan jeda singkat antar akun agar tidak terlalu cepat
+            
             if (i < mnemonics.length - 1) {
-                const delayBetweenAccounts = 10; // 10 detik
+                const delayBetweenAccounts = 10; // 10 seconds
                 console.log(`\n-- Waiting ${delayBetweenAccounts}s before processing next account --`);
                 await utils.sleep(delayBetweenAccounts * 1000);
             }
